@@ -17,7 +17,7 @@ def map_chunked(fn, chunk_size, n, verbose=False):
     return tf.concat(ret, 0)
 
 
-def visualize_value_function(V):
+def visualize_value_function(V, trajectory):
     """
     Visualizes the value function given in V & computes the optimal action,
     visualized as an arrow.
@@ -48,8 +48,60 @@ def visualize_value_function(V):
     u, v = np.reshape(u, (m, n)), np.reshape(v, (m, n))
 
     plt.imshow(V.T, origin="lower")
+    plt.plot(trajectory[:,1], trajectory[:,0], linewidth=3, color='red')
     plt.quiver(X, Y, u, v, pivot="middle")
 
+    
+
+# def extract_policy(problem, reward, terminal_mask, gam, V):
+#     Ts = problem["Ts"]
+#     sdim, adim = Ts[0].shape[-1], len(Ts)  # state and action dimension
+
+#     assert terminal_mask.ndim == 1 and reward.ndim == 2
+#     pxp = tf.zeros([sdim])
+#     possible_values = np.zeros(adim) #np is on purpose for assignment to work
+#     # V_new = np.zeros(sdim) #we assign values in the loop, then convert to tensor for V update
+#     # V_prev = tf.cast(V, tf.float32)
+#     policy = np.zeros(sdim)
+    
+#     for x in range(sdim):
+#         px = np.zeros(sdim) #initial probability distribution over states
+#         px[x] = 1 #we know the state is x, so px = 1 @ x
+#         px = tf.convert_to_tensor(px, dtype=tf.float32)
+#         for u in range(adim):
+#             pxp = tf.linalg.matvec(tf.convert_to_tensor(Ts[u], dtype=tf.float32), px) #get probability distributions over all x' for each action u
+#             temp0 = reward[x, u] + gam*tf.tensordot(pxp, V, 1) #bellman update, dot does multiplication and sumation in place
+#             if terminal_mask[x] == 1: #if terminal state, update is just the reward @ x, u
+#                 temp0 = reward[x, u] #temp0 is a tensor in both cases
+#             possible_values[u] = temp0 #save value for action u at current state
+#         policy[x] = np.argmax(possible_values) #write the optimal value at state x for optimal action
+#         # policy[x] = np.argmax(possible_values)
+#     # V_new = tf.convert_to_tensor(V_new) #for compatibility
+#     # V = V_new #write updated values from temporary variable to V
+#     # err = tf.norm(tf.cast(V_new, tf.float32) - tf.cast(V_prev, tf.float32)) #calc error term
+#     # print(f"Got here {i}")
+#     return policy
+
+def simulate_policy(problem, policy):
+    Ts = problem["Ts"]
+    sdim, adim = Ts[0].shape[-1], len(Ts)  # state and action dimension
+
+    # assert terminal_mask.ndim == 1 and reward.ndim == 2
+    # pxp = tf.zeros([sdim])
+    N = 100
+    x = 0 #starting state
+    states = np.zeros(N)
+    for i in range(1,N):
+        px = np.zeros(sdim) #initial probability distribution over states
+        px[x] = 1 #we know the state is x, so px = 1 at x
+        px = tf.convert_to_tensor(px, dtype=tf.float32)
+        u = int(policy[x]) #extract optimal action from policy
+        pxp = tf.linalg.matvec(tf.convert_to_tensor(Ts[u], dtype=tf.float32), px) #probability dist over xprime given desired action
+        x = tf.random.categorical(tf.expand_dims(tf.math.log(pxp), axis=0), 1) #returns next state according to probability distribution
+        x = int(x) 
+        states[i] = x 
+          
+    return states.astype(int)
 
 def make_transition_matrices(m, n, x_eye, sig):
     """
