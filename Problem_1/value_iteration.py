@@ -6,6 +6,8 @@ from tqdm import tqdm
 
 from utils import generate_problem, visualize_value_function, simulate_policy
 
+from Problem_1.utils import visualize_value_function_trajectory
+
 # from Problem_1.utils import simulate_policy
 
 
@@ -36,7 +38,7 @@ def value_iteration(problem, reward, terminal_mask, gam):
         V_prev = tf.cast(V, tf.float32)
 
         for u in range(adim):
-            pxp = tf.convert_to_tensor(Ts[u], dtype=tf.float32)
+            pxp = tf.convert_to_tensor(Ts[u], dtype=tf.float32) 
             temp0 = reward[:,u] + gam*tf.linalg.matvec(pxp, V_prev)
             possible_values[:,u] = tf.where(terminal_mask, reward[:,u], temp0)
         V_new = tf.convert_to_tensor(np.max(possible_values, axis=1), dtype=tf.float32)
@@ -75,7 +77,7 @@ def main():
     traj_coords = problem["idx2pos"][trajectory]
     print(traj_coords)
     plt.figure(213)
-    visualize_value_function(np.array(V_opt).reshape((n, n)), traj_coords)
+    visualize_value_function_trajectory(np.array(V_opt).reshape((n, n)), traj_coords)
     plt.title("value iteration")
     plt.show()
 

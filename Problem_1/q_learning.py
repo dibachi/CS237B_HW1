@@ -36,7 +36,11 @@ def Q_learning(Q_network, reward_fn, is_terminal_fn, X, U, Xp, gam):
 
         # make sure to account for the reward, the terminal state and the
         # discount factor gam
-
+        LHS = reward_fn(X_, 1) + gam*next_Q
+        RHS = Q 
+        temp = tf.where(is_terminal_fn(X_), reward_fn(X_, 1), LHS - RHS)
+        l = (1/batch_n)*tf.tensordot(temp, temp, 1)
+        
         ######### Your code ends here ###########
 
         # need to regularize the Q-value, because we're training its difference
@@ -47,7 +51,11 @@ def Q_learning(Q_network, reward_fn, is_terminal_fn, X, U, Xp, gam):
     # create the Adam optimizer with tensorflow keras
     # experiment with different learning rates [1e-4, 1e-3, 1e-2, 1e-1]
 
-
+    opt = tf.keras.optimizers.Adam(learning_rate=1e-3)
+    # Q_network = tf.Variable(Q_network)
+    # X = tf.Variable(X)
+    # U = tf.Variable(U)
+    # Xp = tf.Variable(Xp)
     ######### Your code ends here ###########
 
     print("Training the Q-network")
@@ -55,7 +63,12 @@ def Q_learning(Q_network, reward_fn, is_terminal_fn, X, U, Xp, gam):
         ######### Your code starts here #########
         # apply a single step of gradient descent to the Q_network variables
         # take a look at the tf.keras.optimizers
-
+        # with tf.GradientTape() as tape:
+        #     tape.watch([X, U])
+        #     y = loss()
+        # gs = tf.gradients(y, [X, U])
+        # opt.apply_gradients(zip(gs, [X, U]))
+        gs = opt.minimize(loss, [])
 
         ######### Your code ends here ###########
 
@@ -96,7 +109,8 @@ def main():
             # remember that transition matrices have a shape [sdim, sdim]
             # remember that tf.random.categorical takes in the log of
             # probabilities, not the probabilities themselves
-
+            pxp = tf.expand_dims(tf.linalg.matvec(Ts[u], tf.one_hot(x, sdim)), axis=0)
+            xp = int(tf.random.categorical(tf.math.log(pxp), 1))
             ######### Your code ends here ###########
 
             # convert integer states to a 2D representation using idx2pos
@@ -126,7 +140,11 @@ def main():
     # it needs to take in 2 state + 1 action input (3 inputs)
     # it needs to output a single value (batch x 1 output) - the Q-value
     # it should be 3 layers deep with
-
+    input = tf.keras.layers.Input(shape=[3])
+    out = tf.keras.layers.Dense(64, activation="tanh")(input)
+    out = tf.keras.layers.Dense(64, activation="tanh")(out)
+    out = tf.keras.layers.Dense(1)(out)
+    Q_network = tf.keras.Model(inputs=[input], outputs=out)
     ######### Your code ends here ###########
 
     # train the Q-network ##################################

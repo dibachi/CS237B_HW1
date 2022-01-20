@@ -17,7 +17,7 @@ def map_chunked(fn, chunk_size, n, verbose=False):
     return tf.concat(ret, 0)
 
 
-def visualize_value_function(V, trajectory):
+def visualize_value_function(V):
     """
     Visualizes the value function given in V & computes the optimal action,
     visualized as an arrow.
@@ -48,9 +48,42 @@ def visualize_value_function(V, trajectory):
     u, v = np.reshape(u, (m, n)), np.reshape(v, (m, n))
 
     plt.imshow(V.T, origin="lower")
-    plt.plot(trajectory[:,1], trajectory[:,0], linewidth=3, color='red')
+    # plt.plot(trajectory[:,0], trajectory[:,1], linewidth=3, color='red')
     plt.quiver(X, Y, u, v, pivot="middle")
 
+def visualize_value_function_trajectory(V, trajectory):
+    """
+    Visualizes the value function given in V & computes the optimal action,
+    visualized as an arrow.
+
+    You need to call plt.show() yourself.
+
+    Args:
+        V: (np.array) the value function reshaped into a 2D array.
+    """
+    V = np.array(V)
+    assert V.ndim == 2
+    m, n = V.shape
+    pos2idx = np.arange(m * n).reshape((m, n))
+    X, Y = np.meshgrid(np.arange(m), np.arange(n))
+    pts = np.stack([X.reshape(-1), Y.reshape(-1)], -1)
+    u, v = [], []
+    for pt in pts:
+        pt_min, pt_max = [0, 0], [m - 1, n - 1]
+        pt_right = np.clip(np.array(pt) + np.array([1, 0]), pt_min, pt_max)
+        pt_up = np.clip(np.array(pt) + np.array([0, 1]), pt_min, pt_max)
+        pt_left = np.clip(np.array(pt) + np.array([-1, 0]), pt_min, pt_max)
+        pt_down = np.clip(np.array(pt) + np.array([0, -1]), pt_min, pt_max)
+        next_pts = [pt_right, pt_up, pt_left, pt_down]
+        Vs = [V[next_pt[0], next_pt[1]] for next_pt in next_pts]
+        idx = np.argmax(Vs)
+        u.append(next_pts[idx][0] - pt[0])
+        v.append(next_pts[idx][1] - pt[1])
+    u, v = np.reshape(u, (m, n)), np.reshape(v, (m, n))
+
+    plt.imshow(V.T, origin="lower")
+    plt.plot(trajectory[:,0], trajectory[:,1], linewidth=3, color='red')
+    plt.quiver(X, Y, u, v, pivot="middle")
     
 
 # def extract_policy(problem, reward, terminal_mask, gam, V):
@@ -96,7 +129,7 @@ def simulate_policy(problem, policy):
         px[x] = 1 #we know the state is x, so px = 1 at x
         px = tf.convert_to_tensor(px, dtype=tf.float32)
         u = int(policy[x]) #extract optimal action from policy
-        pxp = tf.linalg.matvec(tf.convert_to_tensor(Ts[u], dtype=tf.float32), px) #probability dist over xprime given desired action
+        pxp = tf.linalg.matvec(tf.convert_to_tensor(tf.transpose(Ts[u]), dtype=tf.float32), px) #don't know why transpose worked but whatever. probability dist over xprime given desired action
         x = tf.random.categorical(tf.expand_dims(tf.math.log(pxp), axis=0), 1) #returns next state according to probability distribution
         x = int(x) 
         states[i] = x 
