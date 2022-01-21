@@ -29,7 +29,12 @@ def get_bottleneck_dataset(model, img_dir, img_size):
         # bottleneck_x_l -> list of tensors with dimension [1, bottleneck_size]
         # bottleneck_y_l -> list of tensors with dimension [1, num_labels]
         # Fill in the parts indicated by #FILL#. No additional lines are required.
-
+        x_i, y_i = next(train_img_gen)
+        temp = model(x_i, training=False)
+        # bottleneck_x_l = np.append(bottleneck_x_l, x_i, axis=0)
+        # bottleneck_y_l = np.append(bottleneck_y_l, y_i, axis=0)
+        bottleneck_x_l.append(temp)
+        bottleneck_y_l.append(y_i)
         ######### Your code ends here #########
 
     bottleneck_ds = tf.data.Dataset.from_tensor_slices(
@@ -70,8 +75,16 @@ def retrain(image_dir):
     #   2.4 Create a new model
     # 3. Define a loss and a evaluation metric
     # Fill in the parts indicated by #FILL#. No additional lines are required.
-
-
+    # size_bottleneck = bottleneck_train_ds
+    size_bottleneck = base_model.layers[-1].output_shape[1]
+    # print(f"size_bottleneck: {size_bottleneck}")
+    retrain_input = tf.keras.layers.Input(shape=[size_bottleneck])
+    retrain_layer = tf.keras.layers.Dense(128, activation="tanh", name='classifier')(retrain_input)
+    out = tf.keras.layers.Dense(3)(retrain_layer)
+    retrain_model = tf.keras.Model(inputs=[retrain_input], outputs=out)
+    loss = 'mse'
+    # train_loss = tf.keras.metrics.Mean(name='train_loss')
+    metric = 'accuracy'
 
     ######### Your code ends here #########
 
@@ -96,6 +109,8 @@ def retrain(image_dir):
     # We now want to create the full model using the newly trained classifier
     # Use tensorflow keras Sequential to stack the base_model and the new layers
     # Fill in the parts indicated by #FILL#. No additional lines are required.
+    model = tf.keras.Sequential([base_model, retrain_model])
+    
     ######### Your code ends here #########
 
     model.compile(loss=loss, metrics=[metric])

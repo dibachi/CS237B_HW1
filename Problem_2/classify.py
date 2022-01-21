@@ -25,7 +25,18 @@ def classify(model, test_dir):
     # filename of the datapoint
         # break after 1 epoch
                 #pdb.set_trace()
-
+    
+    num_test = test_img_gen.samples
+    matches = np.ones(num_test)
+    
+    for i in range(num_test):
+        x_i, y_i = next(test_img_gen)
+        temp = model(x_i, training=False)
+        if tf.math.argmax(tf.squeeze(y_i)) != tf.math.argmax(tf.squeeze(temp)):
+            matches[i]=0
+            print("Wrong file:", test_img_gen.filenames[i])
+    accuracy = np.sum(matches)/num_test
+    
 
     ######### Your code ends here #########
 

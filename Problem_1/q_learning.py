@@ -36,10 +36,17 @@ def Q_learning(Q_network, reward_fn, is_terminal_fn, X, U, Xp, gam):
 
         # make sure to account for the reward, the terminal state and the
         # discount factor gam
-        LHS = reward_fn(X_, 1) + gam*next_Q
+        # LHS = reward_fn(X_, 1) + gam*next_Q #used to be X_
+        LHS = tf.where(is_terminal_fn(X_), reward_fn(X_, 1), reward_fn(X_, 1) + gam*next_Q)
         RHS = Q 
-        temp = tf.where(is_terminal_fn(X_), reward_fn(X_, 1), LHS - RHS)
-        l = (1/batch_n)*tf.tensordot(temp, temp, 1)
+        # RHS = tf.where(~is_terminal_fn(X_), Q, reward_fn(X_, 1))
+        temp = LHS - RHS
+        # temp = tf.where(~is_terminal_fn(X_), reward_fn(X_, 1) - Q, LHS - RHS)
+        # temp0 = [tf.norm(LHS[i] - RHS[i]) for i in range(batch_n)]
+        # temp0 = temp0**2
+        l = (1/batch_n)*tf.reduce_sum(temp**2)
+        # l = (1/batch_n)*tf.tensordot(temp, temp, 1)
+
         
         ######### Your code ends here ###########
 
@@ -56,6 +63,7 @@ def Q_learning(Q_network, reward_fn, is_terminal_fn, X, U, Xp, gam):
     # X = tf.Variable(X)
     # U = tf.Variable(U)
     # Xp = tf.Variable(Xp)
+    # vars = tf.Variable(Q_network.variables)
     ######### Your code ends here ###########
 
     print("Training the Q-network")
@@ -68,8 +76,9 @@ def Q_learning(Q_network, reward_fn, is_terminal_fn, X, U, Xp, gam):
         #     y = loss()
         # gs = tf.gradients(y, [X, U])
         # opt.apply_gradients(zip(gs, [X, U]))
-        gs = opt.minimize(loss, [])
-
+        # gs = opt.minimize(loss, [X, Xp, U])
+        
+        gs = opt.minimize(loss, [Q_network.variables])
         ######### Your code ends here ###########
 
 
@@ -109,7 +118,7 @@ def main():
             # remember that transition matrices have a shape [sdim, sdim]
             # remember that tf.random.categorical takes in the log of
             # probabilities, not the probabilities themselves
-            pxp = tf.expand_dims(tf.linalg.matvec(Ts[u], tf.one_hot(x, sdim)), axis=0)
+            pxp = tf.expand_dims(tf.linalg.matvec(tf.transpose(Ts[u]), tf.one_hot(x, sdim)), axis=0)
             xp = int(tf.random.categorical(tf.math.log(pxp), 1))
             ######### Your code ends here ###########
 

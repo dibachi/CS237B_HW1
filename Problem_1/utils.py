@@ -47,7 +47,7 @@ def visualize_value_function(V):
         v.append(next_pts[idx][1] - pt[1])
     u, v = np.reshape(u, (m, n)), np.reshape(v, (m, n))
 
-    plt.imshow(V.T, origin="lower")
+    plt.imshow(V.T, origin="lower") #used to be V.T
     # plt.plot(trajectory[:,0], trajectory[:,1], linewidth=3, color='red')
     plt.quiver(X, Y, u, v, pivot="middle")
 
