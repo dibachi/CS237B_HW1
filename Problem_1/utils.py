@@ -1,7 +1,7 @@
 import math, pdb, os, sys
 
 import numpy as np, tensorflow as tf, matplotlib.pyplot as plt
-
+import pickle
 
 def map_chunked(fn, chunk_size, n, verbose=False):
     """
@@ -46,7 +46,12 @@ def visualize_value_function(V):
         u.append(next_pts[idx][0] - pt[0])
         v.append(next_pts[idx][1] - pt[1])
     u, v = np.reshape(u, (m, n)), np.reshape(v, (m, n))
-
+    
+    filename = 'Q_learning_policy'
+    outfile = open(filename, 'wb')
+    cucumbers = {'X': X, 'Y': Y, 'u': u, 'v': v}
+    pickle.dump(cucumbers, outfile)
+    outfile.close()
     plt.imshow(V.T, origin="lower") #used to be V.T
     # plt.plot(trajectory[:,0], trajectory[:,1], linewidth=3, color='red')
     plt.quiver(X, Y, u, v, pivot="middle")
@@ -81,39 +86,18 @@ def visualize_value_function_trajectory(V, trajectory):
         v.append(next_pts[idx][1] - pt[1])
     u, v = np.reshape(u, (m, n)), np.reshape(v, (m, n))
 
+    filename = 'value_iteration_policy'
+    outfile = open(filename, 'wb')
+    cucumbers = {'X': X, 'Y': Y, 'u': u, 'v': v}
+    pickle.dump(cucumbers, outfile)
+    outfile.close()
+
     plt.imshow(V.T, origin="lower")
     plt.plot(trajectory[:,0], trajectory[:,1], linewidth=3, color='red')
     plt.quiver(X, Y, u, v, pivot="middle")
     
+# def binary_map():
 
-# def extract_policy(problem, reward, terminal_mask, gam, V):
-#     Ts = problem["Ts"]
-#     sdim, adim = Ts[0].shape[-1], len(Ts)  # state and action dimension
-
-#     assert terminal_mask.ndim == 1 and reward.ndim == 2
-#     pxp = tf.zeros([sdim])
-#     possible_values = np.zeros(adim) #np is on purpose for assignment to work
-#     # V_new = np.zeros(sdim) #we assign values in the loop, then convert to tensor for V update
-#     # V_prev = tf.cast(V, tf.float32)
-#     policy = np.zeros(sdim)
-    
-#     for x in range(sdim):
-#         px = np.zeros(sdim) #initial probability distribution over states
-#         px[x] = 1 #we know the state is x, so px = 1 @ x
-#         px = tf.convert_to_tensor(px, dtype=tf.float32)
-#         for u in range(adim):
-#             pxp = tf.linalg.matvec(tf.convert_to_tensor(Ts[u], dtype=tf.float32), px) #get probability distributions over all x' for each action u
-#             temp0 = reward[x, u] + gam*tf.tensordot(pxp, V, 1) #bellman update, dot does multiplication and sumation in place
-#             if terminal_mask[x] == 1: #if terminal state, update is just the reward @ x, u
-#                 temp0 = reward[x, u] #temp0 is a tensor in both cases
-#             possible_values[u] = temp0 #save value for action u at current state
-#         policy[x] = np.argmax(possible_values) #write the optimal value at state x for optimal action
-#         # policy[x] = np.argmax(possible_values)
-#     # V_new = tf.convert_to_tensor(V_new) #for compatibility
-#     # V = V_new #write updated values from temporary variable to V
-#     # err = tf.norm(tf.cast(V_new, tf.float32) - tf.cast(V_prev, tf.float32)) #calc error term
-#     # print(f"Got here {i}")
-#     return policy
 
 def simulate_policy(problem, policy):
     Ts = problem["Ts"]

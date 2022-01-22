@@ -4,9 +4,9 @@ import matplotlib
 import tensorflow as tf, numpy as np, matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from utils import generate_problem, visualize_value_function, simulate_policy
+from utils import generate_problem, visualize_value_function_trajectory, simulate_policy
 
-from Problem_1.utils import visualize_value_function_trajectory
+# from Problem_1.utils import visualize_value_function_trajectory
 
 # from Problem_1.utils import simulate_policy
 
@@ -75,7 +75,7 @@ def main():
     V_opt, p_opt = value_iteration(problem, reward, terminal_mask, gam)
     trajectory = simulate_policy(problem, p_opt)
     traj_coords = problem["idx2pos"][trajectory]
-    print(traj_coords)
+    # print(traj_coords)
     plt.figure(213)
     visualize_value_function_trajectory(np.array(V_opt).reshape((n, n)), traj_coords)
     plt.title("value iteration")

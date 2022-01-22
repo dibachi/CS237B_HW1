@@ -78,13 +78,23 @@ def retrain(image_dir):
     # size_bottleneck = bottleneck_train_ds
     size_bottleneck = base_model.layers[-1].output_shape[1]
     # print(f"size_bottleneck: {size_bottleneck}")
-    retrain_input = tf.keras.layers.Input(shape=[size_bottleneck])
-    retrain_layer = tf.keras.layers.Dense(128, activation="tanh", name='classifier')(retrain_input)
-    out = tf.keras.layers.Dense(3)(retrain_layer)
-    retrain_model = tf.keras.Model(inputs=[retrain_input], outputs=out)
-    loss = 'mse'
+    retrain_input = tf.keras.layers.InputLayer(input_shape=[size_bottleneck])
+    # retrain_input = tf.keras.layers.Input(shape=[size_bottleneck])
+    # retrain_layer = tf.keras.layers.Dense(128, activation="tanh", name='classifier')(retrain_input)
+    retrain_layer = tf.keras.layers.Dense(3, name='classifier')#(retrain_input) #use softmax ALWAYS for classification
+    activation_layer = tf.keras.layers.Activation("softmax")#(retrain_layer)
+    # retrain_layer = tf.keras.layers.DenseLayer(256, activation="tanh", name='classifier')(retrain_input)
+    # out = tf.keras.layers.Dense(3)#(retrain_layer)
+    # retrain_model = tf.keras.Model(inputs=[retrain_input], outputs=out)
+    retrain_model = tf.keras.Sequential([
+        retrain_input,
+        retrain_layer,
+        activation_layer,
+        # out,
+    ])
+    loss = 'categorical_crossentropy'
     # train_loss = tf.keras.metrics.Mean(name='train_loss')
-    metric = 'accuracy'
+    metric = 'categorical_accuracy'
 
     ######### Your code ends here #########
 
@@ -109,8 +119,14 @@ def retrain(image_dir):
     # We now want to create the full model using the newly trained classifier
     # Use tensorflow keras Sequential to stack the base_model and the new layers
     # Fill in the parts indicated by #FILL#. No additional lines are required.
-    model = tf.keras.Sequential([base_model, retrain_model])
-    
+    # model = tf.keras.Sequential([base_model, retrain_model])
+    model = tf.keras.Sequential([
+        base_model,
+        # retrain_model,
+        retrain_input,
+        retrain_layer,
+        activation_layer,
+    ])
     ######### Your code ends here #########
 
     model.compile(loss=loss, metrics=[metric])

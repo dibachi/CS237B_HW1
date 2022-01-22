@@ -1,4 +1,6 @@
 import argparse, pdb
+# from curses import raw
+# from curses import raw
 import matplotlib.pyplot as plt, numpy as np, tensorflow as tf
 
 from utils import (
@@ -32,10 +34,25 @@ def compute_brute_force_classification(model, image_path, nH=8, nW=8):
     raw_image = decode_jpeg(image_path).numpy()
 
     ######### Your code starts here #########
+    
+    window_predictions = np.zeros((nH, nW, 3))
+   
+    h = int(np.floor(raw_image.shape[0]/nH))
+    w = int(np.floor(raw_image.shape[1]/nW))
 
+    ph = int(h/2) - 1 #padding pixels
+    pw = int(w/2) - 1
 
+    paddings = tf.constant([[ph, ph], [pw,pw], [0, 0]])
+    padded_image = tf.pad(raw_image, paddings, "CONSTANT")
 
-
+    for i in range(nH):
+        for j in range(nW):
+            window = tf.expand_dims(tf.cast(padded_image[(i*h):(i+1)*h + 2*ph, (j*w):(j+1)*w + 2*pw, :], tf.float32), axis=0) #raw image
+            resized_window = normalize_resize_image(window, IMG_SIZE) #tf.convert_to_tensor(normalize_resize_image(window, IMG_SIZE), dtype=tf.float32)
+            window_predictions[i, j, :] = tf.squeeze(model.predict(resized_window)) #trying predict_proba vs predict
+            # window_predictions[i, j, :] = 0.5*tf.math.tanh(temp) + 0.5
+            
     ######### Your code ends here #########
 
     return window_predictions
@@ -69,6 +86,17 @@ def compute_convolutional_KxK_classification(model, image_path):
     # Predict the ouput of the convolution layer using conv_model
 
     # Reshape so that patches become batches and predict
+    (_, _, K, bottleneck_size) = conv_model.layers[-1].output_shape
+
+    int_input = tf.keras.layers.Input(shape=[bottleneck_size]) 
+    # out = (model.layers[1:])(int_input)
+    out = model.layers[1:]
+    # class_model = tf.keras.Model(inputs=[int_input], outputs=out)
+    class_model = tf.keras.Sequential([int_input]+ out)
+    conv_image = conv_model.predict(np.expand_dims(resized_patch,0))
+    conv_image_reshaped = tf.reshape(conv_image,[K*K,bottleneck_size]) 
+    predictionsKxK = class_model.predict(conv_image_reshaped)
+    
     ######### Your code ends here #########
 
     return np.reshape(predictionsKxK, [K, K, -1])
@@ -95,9 +123,17 @@ def compute_and_plot_saliency(model, image_path):
         ######### Your code starts here #########
         # Fill in the parts indicated by #FILL#. No additional lines are
         # required.
-
-
-
+        
+        t.watch(raw_image)
+        img_resized = tf.convert_to_tensor(normalize_resize_image(raw_image, IMG_SIZE), dtype=tf.float32)
+        output_logits = logits_model(tf.expand_dims(img_resized, 0))
+        top_class = np.argmax(output_logits)
+        # l = tf.reduce_sum(raw_image**2)
+        w = t.gradient(output_logits[0,top_class], raw_image)
+        # print(w)
+        # M = tf.reduce_max(w, axis=-1)
+        M = np.max(np.abs(w), axis=2)
+    # print(w.shape)
         ######### Your code ends here #########
 
     plt.subplot(2, 1, 1)
